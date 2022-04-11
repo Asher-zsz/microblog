@@ -1,2 +1,2 @@
 # microblog
-Learn to build web application with Flask
+Learn to build web application with Flask!
