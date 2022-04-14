@@ -17,6 +17,11 @@ class User(UserMixin, db.Model): # 通过继承UserMixin来继承 is_authenticat
     # >>> p = Post(body='my first post!', author=u)
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+    followed = db.relationship(
+        'User', secondary=followers,
+        primaryjoin=(followers.c.follower_id == id),
+        secondaryjoin=(followers.c.followed_id == id),
+        backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
 
     
     # methods to deal with password hash
@@ -42,6 +47,14 @@ class Post(db.Model):
 
     def __rep__(self):
         return '<Post {}>'.format(self.body)
+
+
+# Since this is an auxiliary table that has no data other than the foreign keys, 
+# I created it without an associated model class.
+followers = db.Table('followers',
+    db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
+)
 
 @login.user_loader # 可以用来得到current_user
 def load_user(id):
