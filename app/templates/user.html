@@ -1,11 +1,22 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>User: {{ user.username }}</h1>
-    <hr>
-    {% for post in posts %}
-    <p>
-    {{ post.author.username }} says: <b>{{ post.body }}</b>
-    </p>
-    {% endfor %}
+    <table>
+        <tr valign="top"> <!--表格中的行-->
+            <td><img src="{{ user.avatar(128) }}"></td> <!--表格中的元素-->
+            <td>
+                <h1>User: {{ user.username }}</h1>
+                {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
+                {% if user.last_seen %}<p>Last seen on: {{ user.last_seen }}</p>{% endif %}
+                {% if user == current_user %}
+                <p><a href="{{ url_for('edit_profile') }}">Edit your profile</a></p>
+                {% endif %}
+            </td>
+        </tr>
+
+    </table>
+        <hr>
+        {% for post in posts %}
+            {% include '_post.html' %} <!--Jinja2's "include" statement-->
+        {% endfor %}
 {% endblock %}

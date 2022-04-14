@@ -14,4 +14,4 @@ login.login_view = 'login' # to tell Flask-Login which view function handles log
                            # so it can use @login_required to pretect certain views from anonymous users,
                            # when these views are accessed, the decorator will redirect users to login_view
 
-from app import routes, models
+from app import routes, models, errors

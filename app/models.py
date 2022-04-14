@@ -3,6 +3,8 @@ from app import db, login
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+from hashlib import md5
+
 
 class User(UserMixin, db.Model): # 通过继承UserMixin来继承 is_authenticated, is_active, is_anonymous, get_id()等几个属性与方法
     id = db.Column(db.Integer, primary_key=True)
@@ -13,6 +15,9 @@ class User(UserMixin, db.Model): # 通过继承UserMixin来继承 is_authenticat
     # backref='author' means to add a 'author' field to Post, and can be used like this：
     # >>> u = User.query.get(1)
     # >>> p = Post(body='my first post!', author=u)
+    about_me = db.Column(db.String(140))
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+
     
     # methods to deal with password hash
     def set_password(self, password):
@@ -23,6 +28,11 @@ class User(UserMixin, db.Model): # 通过继承UserMixin来继承 is_authenticat
 
     def __rep__(self): # the representation when printing
         return '<User {}>'.format(self.username) 
+    
+    def avatar(self, size):
+        digest = md5(self.email.lower().encode('utf-8')).hexdigest()
+        return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(digest, size)
+
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -33,6 +43,6 @@ class Post(db.Model):
     def __rep__(self):
         return '<Post {}>'.format(self.body)
 
-@login.user_loader
+@login.user_loader # 可以用来得到current_user
 def load_user(id):
     return User.query.get(int(id))
