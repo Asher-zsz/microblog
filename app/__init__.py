@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 # from flask_mail import Mail
 from flask_bootstrap import Bootstrap
+from flask_moment import Moment
 
 app = Flask(__name__)
 # app.config['SECRET_KEY'] = 'you-will-never-guess'
@@ -20,7 +21,7 @@ login.login_view = 'login' # to tell Flask-Login which view function handles log
 
 # With the extension initialized, a bootstrap/base.html template becomes available
 bootstrip = Bootstrap(app) 
-
+moment = Moment(app)
 
 
 from app import routes, models, errors
