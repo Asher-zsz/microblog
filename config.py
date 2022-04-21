@@ -9,11 +9,13 @@ class Config(object):
         'sqlite:///' + os.path.join(basedir, 'app.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False    
 
+    POSTS_PER_PAGE = 25
 
-    # #email notification service
+
+    # email service
     # MAIL_SERVER = os.environ.get('MAIL_SERVER') # If the email server is not set in the environment, then emailing errors needs to be disabled. 
     # MAIL_PORT = int(os.environ.get('MAIL_PORT') or 25)
     # MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') is not None
     # MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     # MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    # ADMINS = ['your-email@example.com']
+    # ADMINS = ['zsz07100909@gmail.com']

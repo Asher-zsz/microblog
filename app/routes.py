@@ -1,8 +1,9 @@
 from flask import render_template, flash, redirect, url_for, request
 
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm
-from app.models import User
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm
+from app.models import User, Post
+
 
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
@@ -17,23 +18,48 @@ def before_request():
         # 调用current_user时，userloader这个callback function已经把查到的user放入database session里了
 
 
-@app.route('/')
-@app.route('/index')
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
 @login_required
 def index():
-    user = {'username': 'Asher'}
-    posts = [
-        {
-            'author': {'username': 'John'},
-            'body': 'Beautiful day in Portland!'
-        },
-        {
-            'author': {'username': 'Susan'},
-            'body': 'The Avengers movie was so cool!'
-        }
-    ]
+    form = PostForm() # 实例化form
+    if form.validate_on_submit(): #确认form已经符合validators的要求了
+        post = Post(body=form.post.data, author=current_user) # 这种写法见User类的posts属性
+        db.session.add(post)
+        db.session.commit()
+        flash('Your post is now live!')
+        redirect(url_for('index')) # 已经在index里了，直接render_template不行吗，为什么要redirect
+        # Because all the web browser does when you hit the refresh key is to re-issue the last request.
+        # We need to make sure the last request is 'GET', in order to avoid inserting duplicate forms.
+    # posts = current_user.followed_posts().all()
+    # must end with all(): followed_posts() returns a query object, calling all() triggers its execution.
+    # show posts by pages instead of all posts together
+    page = request.args.get('page', 1, type=int)
+    posts = current_user.followed_posts().paginate(
+        page, app.config['POSTS_PER_PAGE'], False) 
+    next_url = url_for('index', page=posts.next_num) \
+        if posts.has_next else None
+    prev_url = url_for('index', page=posts.prev_num) \
+        if posts.has_prev else None
+    return render_template('index.html', title='Home', form=form,
+                           posts=posts.items, next_url=next_url,
+                           prev_url=prev_url)
 
-    return render_template("index.html", title = "Home Page", posts = posts)
+
+@app.route('/explore')
+@login_required
+def explore():
+    page = request.args.get('page', 1, type=int)
+    posts = Post.query.order_by(Post.timestamp.desc()).paginate(
+        page, app.config['POSTS_PER_PAGE'], False)
+    # the 'page' in url_for() will be included in the URL as a query argument.
+    next_url = url_for('explore', page=posts.next_num) \
+        if posts.has_next else None
+    prev_url = url_for('explore', page=posts.prev_num) \
+        if posts.has_prev else None
+    return render_template("index.html", title='Explore', posts=posts.items,
+                          next_url=next_url, prev_url=prev_url)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -46,16 +72,20 @@ def login():
             flash('Invalid username or password')
             return redirect(url_for('login'))
         login_user(user, remember=form.remember_me.data)
+        # Right after the user is logged in by calling Flask-Login's login_user() function, 
+        # the value of the next query string argument is obtained. 
         next_page = request.args.get('next') # request contains all the information that the client sent with the request
         if not next_page or url_parse(next_page).netloc != '': # 第二种情况，防止next变量中插入其他网站的绝对路径，进行恶意跳转
             next_page = url_for('index')
         return redirect(next_page)
     return render_template('login.html', form = form, title = 'Sign In') # form for login.html, title for base.html
 
+
 @app.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -75,14 +105,17 @@ def register():
 @app.route('/user/<username>')
 @login_required
 def user(username):
-    user = User.query.filter_by(username=username).first_or_404() # if there is no result, automatically sends a 404 error back to the client
-    
-    posts = [
-        {'author': user, 'body': 'Test post #1'},
-        {'author': user, 'body': 'Test post #2'}
-    ]
+    user = User.query.filter_by(username=username).first_or_404()
+    page = request.args.get('page', 1, type=int)
+    posts = user.posts.order_by(Post.timestamp.desc()).paginate(
+        page, app.config['POSTS_PER_PAGE'], False)
+    next_url = url_for('user', username=user.username, page=posts.next_num) \
+        if posts.has_next else None
+    prev_url = url_for('user', username=user.username, page=posts.prev_num) \
+        if posts.has_prev else None
     form = EmptyForm()
-    return render_template('user.html', user=user, posts=posts, form=form)
+    return render_template('user.html', user=user, posts=posts.items,
+                           next_url=next_url, prev_url=prev_url, form=form)
 
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
@@ -139,3 +172,4 @@ def unfollow(username):
         return redirect(url_for('user', username=username))
     else:
         return redirect(url_for('index'))
+
