@@ -11,6 +11,8 @@ class Config(object):
 
     POSTS_PER_PAGE = 25
 
+    LANGUAGES = ['en', 'es', 'zh']
+
 
     # email service
     # MAIL_SERVER = os.environ.get('MAIL_SERVER') # If the email server is not set in the environment, then emailing errors needs to be disabled. 
@@ -18,4 +20,4 @@ class Config(object):
     # MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') is not None
     # MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     # MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    # ADMINS = ['zsz07100909@gmail.com']
+    # ADMINS = ['zsz07100909@gmae
