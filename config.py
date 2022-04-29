@@ -1,5 +1,8 @@
 import os
+from dotenv import load_dotenv
+
 basedir = os.path.abspath(os.path.dirname(__file__)) #返回当前文件所在文件夹的绝对路径
+load_dotenv(os.path.join(basedir, '.env')) # Since the config.py module is where I read all the environment variables, I'm going to import the .env file before the Config class is created, so that the variables are already set when the class is constructed
 
 
 class Config(object):
