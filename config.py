@@ -16,6 +16,8 @@ class Config(object):
 
     LANGUAGES = ['en', 'es', 'zh']
 
+    ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
+
 
     # email service
     # MAIL_SERVER = os.environ.get('MAIL_SERVER') # If the email server is not set in the environment, then emailing errors needs to be disabled. 
