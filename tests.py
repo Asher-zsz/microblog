@@ -1,16 +1,29 @@
 from datetime import datetime, timedelta
+from tkinter.tix import Tree
 import unittest
-from app import app, db
+from app import create_app, db
 from app.models import User, Post
+from config import Config
+
+
+# 重写Config类为TestConfig
+class TestConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite://'
 
 class UserModelCase(unittest.TestCase):
     def setUp(self):
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
+        self.app = create_app(TestConfig)
+        # The db instance needs to know what the application instance is, because it needs to get the database URI from app.config
+        # db.create_all() can use current_app.config to know where is the database
+        self.app_context = self.app.app_context()
+        self.app_context.push()
         db.create_all()
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
+        self.app_context.pop()
 
     def test_password_hashing(self):
         u = User(username='susan')

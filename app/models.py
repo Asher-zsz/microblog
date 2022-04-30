@@ -71,6 +71,7 @@ class User(UserMixin, db.Model): # 通过继承UserMixin来继承 is_authenticat
 
 
 class Post(db.Model):
+    __searchable__ = ['body'] # this __searchable__ attribute that I added is just a variable, it does not have any behavior associated with it
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.String(140))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
