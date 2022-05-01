@@ -11,5 +11,8 @@ Reference Book: *The New Flask Mega-Tutorial* by Miguel Grinberg
 - To update all the languages after making changes to the `_()` and `_l()` language markers: `(venv) $ flask translate update`
 - And to compile all languages after updating the translation files: `(venv) $ flask translate compile`
 
+**For searching features**
+- To initialize the index from database: run `>>> Post.reindex()` in flask shell
+
 
 

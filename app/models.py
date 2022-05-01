@@ -1,17 +1,73 @@
 from datetime import datetime
 from app import db, login
+from app.search import add_to_index, remove_from_index, query_index
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from hashlib import md5
 
+class SearchableMixin(object):
+    @classmethod
+    def search(cls, expression, page, per_page):
+        # all indexes will be named with the name Flask-SQLAlchemy assigned to the relational table
+        ids, total = query_index(cls.__tablename__, expression, page, per_page)
+        if total == 0:
+            return cls.query.filter_by(id=0), 0
+        when = []
+        for i in range(len(ids)):
+            when.append((ids[i], i))
+        return cls.query.filter(cls.id.in_(ids)).order_by(
+            db.case(when, value=cls.id)), total
+            # 对于case排序的说明：query_index()根据relevence返回ids，为了保证取出的records也保留relevence排序
+            # 可以使用case when来给每个id依次赋予升序的integer，根据这个人造规则 asc排序，得到结果。
+            # 参考 https://stackoverflow.com/questions/6332043/sql-order-by-multiple-values-in-specific-order/6332081#6332081
 
-# Since this is an auxiliary table that has no data other than the foreign keys, 
-# I created it without an associated model class.
+    @classmethod
+    def before_commit(cls, session):
+        # 初始化一个dictionary，储存relational database的变化
+        session._changes = {
+            'add': list(session.new),
+            'update': list(session.dirty),
+            'delete': list(session.deleted)
+        }
+
+    @classmethod
+    def after_commit(cls, session):
+        # 根据 database的变化，更新index
+        for obj in session._changes['add']:
+            if isinstance(obj, SearchableMixin):
+                add_to_index(obj.__tablename__, obj)
+        for obj in session._changes['update']:
+            if isinstance(obj, SearchableMixin):
+                add_to_index(obj.__tablename__, obj) # update也可以用add_to_index，因为id相同时，直接覆盖原record
+        for obj in session._changes['delete']:
+            if isinstance(obj, SearchableMixin):
+                remove_from_index(obj.__tablename__, obj)
+        session._changes = None
+
+    @classmethod
+    def reindex(cls):
+        for obj in cls.query:
+            add_to_index(cls.__tablename__, obj)
+
+"""
+The purpose of these two statements is to set up the event handlers 
+that will make SQLAlchemy call the before_commit() and after_commit() methods
+before and after each commit respectively.
+"""
+db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
+db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
+
+
+"""
+Since this is an auxiliary table that has no data other than the foreign keys, 
+I created it without an associated model class.
+"""
 followers = db.Table('followers',
     db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
     db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
 )
+
 
 class User(UserMixin, db.Model): # 通过继承UserMixin来继承 is_authenticated, is_active, is_anonymous, get_id()等几个属性与方法
     id = db.Column(db.Integer, primary_key=True)
@@ -70,7 +126,7 @@ class User(UserMixin, db.Model): # 通过继承UserMixin来继承 is_authenticat
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(digest, size)
 
 
-class Post(db.Model):
+class Post(SearchableMixin, db.Model):
     __searchable__ = ['body'] # this __searchable__ attribute that I added is just a variable, it does not have any behavior associated with it
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.String(140))
